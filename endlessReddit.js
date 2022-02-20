@@ -44,20 +44,17 @@ function appendNextSiteTable(text){
     var nextSiteTable = nextPageDoc.getElementById("siteTable");
     nextSiteTable.classList.add(`siteTable-page${fetchCt+1}`);
 
-    triggerLoadHandlers(nextSiteTable);
-
     prevSiteTable.after(nextSiteTable);
     console.log("appended");
+
+    attachEventHandlers(nextSiteTable);
 }
 
-function triggerLoadHandlers(siteEl){
-    return;
-    siteEl.querySelectorAll(".thing").forEach((thingEl)=>{
-        updateEventHandlers(thingEl)
-        /* el.addEventListener("click",(event)=>{
-            var thingy = Backbone.View(event.target);
-            console.log(thingy);
-        }); */
+function attachEventHandlers(siteEl){
+
+    $(siteEl).on("click",".expando-button",(e)=>{
+        $(e.target).toggleClass("expanded collapsed");
+        $(e.target).thing().find(".expando").toggle();
     });
 }
 
