@@ -1,0 +1,23 @@
+{
+    "manifest_version": 2,
+    "name": "Endless-Reddit",
+    "author": "jhook1",
+    "version": "0.1",
+    "icons":{
+        "24":"/error_white_24dp.svg"
+    },
+    "browser_action":{
+        "default_icon":{
+            "24":"/error_white_24dp.svg"
+        }
+    },
+    "content_scripts":[
+        {
+            "matches":["https://*.reddit.com/*"],
+            "js":["/inject-endlessReddit.js"]
+        }
+    ],
+    "permissions": [
+		"https://*.reddit.com/*"
+    ]
+}
