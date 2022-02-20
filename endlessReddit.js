@@ -51,7 +51,6 @@ function appendNextSiteTable(text){
 }
 
 function attachEventHandlers(siteEl){
-
     $(siteEl).on("click",".expando-button",(e)=>{
         function createExpando(thing,expanded){
             if(thing.data("expando")) return;
@@ -64,11 +63,181 @@ function attachEventHandlers(siteEl){
 
         var thingy = $(e.target).closest(".thing");
         createExpando(thingy,false);
-
-        /* $(e.target).toggleClass("expanded collapsed");
-        $(e.target).thing().find(".expando").toggle(); */
     });
 }
+
+var ExpandoController = Backbone.View.extend({});
+
+function isPluginExpandoButton(elem) {
+    // temporary fix for RES http://redd.it/392zol
+    return elem.tagName === 'A';
+}
+
+var Expando = Backbone.View.extend({
+    buttonSelector: '.expando-button',
+    expandoSelector: '.expando',
+    expanded: false,
+
+    //possibly: calls ths.toggleExapndo() on click of .expando-button
+    events: {
+      'click .expando-button': 'toggleExpando',
+    },
+
+    constructor: function() {
+      Backbone.View.prototype.constructor.apply(this, _.toArray(arguments));
+
+      this.afterInitialize();
+    },
+
+    initialize: function() {
+      this.$button = this.$el.find(this.buttonSelector);
+      this.$expando = this.$el.find(this.expandoSelector);
+    },
+
+    afterInitialize: function() {
+      this.expand();
+    },
+
+    toggleExpando: function(e) {
+      if (isPluginExpandoButton(e.target)) { return; }
+
+      this.expanded ? this.collapse() : this.expand();
+    },
+
+    expand: function() {
+      this.$button.addClass('expanded')
+                  .removeClass('collapsed');
+      this.expanded = true;
+      this.show();
+    },
+
+    collapse: function() {
+      /* this.$button.addClass('collapsed')
+                  .removeClass('expanded'); */
+      this.expanded = false;
+      this.hide();
+    },
+
+    hide: function() {
+      this.$expando.hide();
+    }
+});
+
+var LinkExpando = Expando.extend({
+    initialize: function() {
+      Expando.prototype.initialize.call(this);
+
+      this.cachedHTML = this.$expando.data('cachedhtml');
+      this.loaded = !!this.cachedHTML;
+      this.id = this.$el.thing_id();
+      this.isNSFW = this.$el.hasClass('over18');
+      this.linkType = this.$el.hasClass('self') ? 'self' : 'link';
+      this.autoexpanded = this.options.autoexpanded;
+
+      if (this.autoexpanded) {
+        this.loaded = true;
+        this.cachedHTML = this.$expando.html();
+      }
+
+      var $e = $.Event('expando:create', { expando: this });
+      $(document.body).trigger($e);
+
+      if ($e.isDefaultPrevented()) { return; }
+
+      $(document).on('hide_thing_' + this.id, function() {
+        this.collapse();
+      }.bind(this));
+
+      // expando events
+      var linkURL = this.$el.children('.entry').find('a.title').attr('href');
+
+      if (/^\//.test(linkURL)) {
+        var protocol = window.location.protocol;
+        var hostname = window.location.hostname;
+        linkURL = protocol + '//' + hostname + linkURL;
+      }
+
+      // event context
+      var eventData = {
+        linkIsNSFW: this.isNSFW,
+        linkType: this.linkType,
+        linkURL: linkURL,
+      };
+      
+      // note that hyphenated data attributes will be converted to camelCase
+      var thingData = this.$el.data();
+
+      if ('fullname' in thingData) {
+        eventData.linkFullname = thingData.fullname;
+      }
+
+      if ('timestamp' in thingData) {
+        eventData.linkCreated = thingData.timestamp;
+      }
+
+      if ('domain' in thingData) {
+        eventData.linkDomain = thingData.domain;
+      }
+
+      if ('authorFullname' in thingData) {
+        eventData.authorFullname = thingData.authorFullname;
+      }
+
+      if ('subreddit' in thingData) {
+        eventData.subredditName = thingData.subreddit;
+      }
+
+      if ('subredditFullname' in thingData) {
+        eventData.subredditFullname = thingData.subredditFullname;
+      }
+
+      this._expandoEventData = eventData;
+    },
+
+    show: function() {
+      if (!this.loaded) {
+        return $.request('expando', { link_id: this.id }, function(res) {
+          var expandoHTML = $.unsafe(res);
+          this.cachedHTML = expandoHTML;
+          this.loaded = true;
+          this.show();
+        }.bind(this), false, 'html', true);
+      }
+
+      var $e = $.Event('expando:show', { expando: this });
+      this.$el.trigger($e);
+
+      if ($e.isDefaultPrevented()) { return; }
+
+      if (!this.autoexpanded) {
+        this.$expando.html(this.cachedHTML);
+      }
+
+      if (!this._expandoEventData.provider) {
+        // this needs to be deferred until the actual embed markup is available.
+        var $media = this.$expando.children();
+
+        if ($media.is('iframe')) {
+          this._expandoEventData.provider = 'embedly';
+        } else {
+          this._expandoEventData.provider = 'reddit';
+        }
+      }
+
+      this.showExpandoContent();
+      //this.fireExpandEvent();
+    },
+
+    showExpandoContent: function() {
+      this.$expando.removeClass('expando-uninitialized');
+      this.$expando.show();
+    },
+
+    //keep: called when accepting expanded NSFW content
+    fireExpandEvent: function() {
+        return;
+    },
+});
 
 var fetchCt = 0;
 document.getElementById("siteTable").classList.add("siteTable-page1");
