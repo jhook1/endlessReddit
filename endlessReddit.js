@@ -1,3 +1,5 @@
+const MAX_FETCH_COUNT = 5;
+
 function getNextUrl(){
     const nextBtn = document.querySelector(".nav-buttons .next-button a");
     const nextPageUrl = nextBtn.getAttribute("href");
@@ -7,7 +9,7 @@ function getNextUrl(){
 
 function fetchNextPage(){
     fetchCt++;
-    if(fetchCt>=5){console.log("maxed");return;}
+    if(fetchCt >= MAX_FETCH_COUNT){console.log("maxed");return;}
 
     console.log("fetching...");
     const textResult = "";
