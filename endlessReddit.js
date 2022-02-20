@@ -53,8 +53,20 @@ function appendNextSiteTable(text){
 function attachEventHandlers(siteEl){
 
     $(siteEl).on("click",".expando-button",(e)=>{
-        $(e.target).toggleClass("expanded collapsed");
-        $(e.target).thing().find(".expando").toggle();
+        function createExpando(thing,expanded){
+            if(thing.data("expando")) return;
+            thing.data("expando",true);
+            var view = new LinkExpando({
+                el: thing[0],
+                autoexpanded: expanded
+            });
+        }
+
+        var thingy = $(e.target).closest(".thing");
+        createExpando(thingy,false);
+
+        /* $(e.target).toggleClass("expanded collapsed");
+        $(e.target).thing().find(".expando").toggle(); */
     });
 }
 
